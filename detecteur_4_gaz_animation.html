@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animation – Détecteur 4 gaz</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: #f7f4f6;
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  }
+  .device {
+    width: min(100%, 380px);
+    background: #2a2a2e;
+    border-radius: 22px;
+    padding: 18px 18px 22px;
+    box-shadow: 0 18px 40px rgba(40,10,30,.28);
+    border: 3px solid #e7b042;
+  }
+  .device-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #d9d4d7;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .led {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #3ccb5a;
+    box-shadow: 0 0 8px #3ccb5a;
+    flex: none;
+  }
+  .led.alarm {
+    background: #ff5a5a;
+    box-shadow: 0 0 12px #ff5a5a;
+    animation: blink .5s steps(2) infinite;
+  }
+  @keyframes blink { 50% { opacity: .2; } }
+  .lcd {
+    background: #0e1a12;
+    border-radius: 10px;
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    color: #9bf27a;
+  }
+  .ch {
+    border: 1px solid rgba(155,242,122,.25);
+    border-radius: 6px;
+    padding: 8px 10px;
+    min-width: 0;
+  }
+  .ch .k { font-size: 11px; opacity: .75; }
+  .ch .v {
+    font-size: 26px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .ch .u { font-size: 11px; opacity: .75; }
+  .ch.alarm {
+    color: #ff5a5a;
+    border-color: #ff5a5a;
+    animation: blink .6s steps(2) infinite;
+  }
+  .ch.warn { color: #ffd15a; border-color: #ffd15a; }
+  .device-foot {
+    color: #bdb6ba;
+    font-size: 12px;
+    margin-top: 10px;
+    text-align: center;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+  <section class="device" aria-label="Détecteur 4 gaz animé">
+    <div class="device-top">
+      <span>Détecteur 4 gaz</span>
+      <span class="led" id="heroLed" aria-label="État normal"></span>
+    </div>
+    <div class="lcd" id="heroLcd">
+      <div class="ch" id="chO2">
+        <div class="k">O₂</div><div class="v" id="hO2">20.9</div><div class="u">% vol</div>
+      </div>
+      <div class="ch" id="chH2S">
+        <div class="k">H₂S</div><div class="v" id="hH2S">0</div><div class="u">ppm</div>
+      </div>
+      <div class="ch" id="chCO">
+        <div class="k">CO</div><div class="v" id="hCO">0</div><div class="u">ppm</div>
+      </div>
+      <div class="ch" id="chLIE">
+        <div class="k">EX</div><div class="v" id="hLIE">0</div><div class="u">% LIE</div>
+      </div>
+    </div>
+    <div class="device-foot" id="heroFoot">Mesure en descente : 0,0 m</div>
+  </section>
+
+<script>
+(() => {
+  let depth = 0;
+  let direction = 1;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const $ = id => document.getElementById(id);
+
+  function tick() {
+    depth += 0.25 * direction;
+    if (depth >= 6) direction = -1;
+    if (depth <= 0) direction = 1;
+
+    const deep = Math.max(0, depth - 3.5) / 2.5;
+    const o2 = 20.9 - deep * 2.6 + (Math.random() - 0.5) * 0.1;
+    const h2s = Math.round(deep * deep * 14 + (deep > 0 ? Math.random() * 1.5 : 0));
+    const co = Math.round(deep * 3);
+    const lie = Math.round(deep * 4);
+
+    $('hO2').textContent = o2.toFixed(1);
+    $('hH2S').textContent = h2s;
+    $('hCO').textContent = co;
+    $('hLIE').textContent = lie;
+
+    $('chO2').className = 'ch' + (o2 < 19 ? ' alarm' : '');
+    $('chH2S').className = 'ch' + (h2s >= 10 ? ' alarm' : h2s >= 5 ? ' warn' : '');
+    $('heroLed').className = 'led' + ((o2 < 19 || h2s >= 10) ? ' alarm' : '');
+    $('heroLed').setAttribute('aria-label', (o2 < 19 || h2s >= 10) ? 'Alarme' : 'État normal');
+
+    $('heroFoot').textContent =
+      'Mesure en descente : ' + depth.toFixed(1).replace('.', ',') + ' m' +
+      (h2s >= 10 ? ' · ALARME, NE PAS ENTRER' : '');
+  }
+
+  tick();
+  if (!reducedMotion) window.setInterval(tick, 450);
+})();
+</script>
+</body>
+</html>
